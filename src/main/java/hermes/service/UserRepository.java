@@ -1,9 +1,12 @@
 package hermes.service;
 
+import hermes.model.DeviceBrand;
 import hermes.model.User;
-import io.reactivex.Flowable;
 import io.reactivex.Single;
-import io.reactivex.processors.PublishProcessor;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Random;
@@ -13,30 +16,33 @@ import java.util.stream.Collectors;
 
 public class UserRepository {
 
-    private PublishProcessor<User> userPublishProcessor = PublishProcessor.create();
+    private Logger logger = LoggerFactory.getLogger(UserRepository.class);
 
-    public Flowable<User> subscribeOnUsersData() {
-        return userPublishProcessor;
-    }
-
-    public Single<List<User>> askForUserIds(Set<UUID> userIds) {
+    public Single<List<User>> getUsers(Set<UUID> userIds) {
         return executeNetworkCall(userIds);
     }
 
     private Single<List<User>> executeNetworkCall(Set<UUID> userIds) {
         return Single.create(emitter -> {
-            new Thread(() -> {
+            final Disposable disposable = Schedulers.io().createWorker().schedule(() -> {
+                logger.info("receive request {}", userIds);
                 networkDelay();
-                final List<User> result = userIds.stream().map(User::new).collect(Collectors.toList());
+                final DeviceBrand deviceBrand = new Random().nextInt() % 2 == 0
+                                                ? DeviceBrand.Apple
+                                                : DeviceBrand.Android;
+                final List<User> result = userIds.stream().map(userId -> new User(userId, deviceBrand)).collect(Collectors.toList());
                 emitter.onSuccess(result);
-            }).start();
+                logger.info("send users data for - {}", userIds);
+            });
+
+            emitter.setDisposable(disposable);
         });
 
     }
 
     private void networkDelay() {
         try {
-            Thread.sleep(new Random(500).nextLong());
+            Thread.sleep(100);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

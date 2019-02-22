@@ -6,9 +6,11 @@ import java.util.UUID;
 public class User {
 
     public final UUID userId;
+    public final DeviceBrand deviceBrand;
 
-    public User(UUID userId) {
+    public User(UUID userId, DeviceBrand deviceBrand) {
         this.userId = userId;
+        this.deviceBrand = deviceBrand;
     }
 
     @Override
@@ -22,5 +24,10 @@ public class User {
     @Override
     public int hashCode() {
         return Objects.hash(userId);
+    }
+
+    @Override
+    public String toString() {
+        return userId.toString();
     }
 }
